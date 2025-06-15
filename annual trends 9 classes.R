@@ -1,6 +1,5 @@
 library(tidyverse)
 library(trend)
-library(bfast)
 
 # 1. Prepare the data ----
 annual_data <- read_csv("E:/WUR_Intern/RewildingProject_RawData/NDVI/ZonalStats_9Class_Annual.csv")
@@ -54,47 +53,49 @@ print(trend_results %>% arrange(IndexType, desc(sen_slope)))
 
 # 3. Visualization ----
 #### 3.1 time series ####
+class_colors <- c(
+  "Rewilded Forest" = "#1a9850", 
+  "Rewilded Natural Grassland" = "#91cf60", 
+  "Rewilded Open/Wetland" = "#d9ef8b", 
+  "Stable Agriculture Grassland" = "#fee08b", 
+  "Stable Agriculture Crops" = "#fdae61", 
+  "Stable Original Forest" = "#2c7bb6",
+  "Stable Original Open/Grass/Wetland" = "#abd9e9"
+)
+
+# Determine the min and max year for axis scaling
 min_year <- min(annual_data_long$Year)
 max_year <- max(annual_data_long$Year)
 
-# --- Plot 1: NDVI Time Series ---
-ggplot(data = annual_data_long %>% filter(IndexType == "NDVI", !ClassName %in% c("Water", "Built-up")), 
+
+# Create the time series plot
+ggplot(data = annual_data_long %>% filter(!ClassName %in% c("Water", "Built-up")), 
        aes(x = Year, y = IndexValue, color = ClassName, group = ClassName)) +
-  geom_line(alpha = 0.5) +
+  geom_line(alpha = 0.8, size = 1) + 
   geom_point(size = 1) +
-  geom_smooth(method = "lm", se = FALSE, linetype = "dashed", size = 0.5) +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed", size = 0.7, color = "grey20") + 
+  
+  # Use facet_wrap to create separate panels for NDVI and NIRv
+  facet_wrap(~ IndexType, scales = "free_y", ncol = 1) +
+  
+  scale_color_manual(values = class_colors) + 
   scale_x_continuous(breaks = seq(min_year, max_year, by = 2)) + 
+  
   labs(
-    # title = "Annual NDVI Trend for Different Analysis Zones (1993-2024)",
+    title = "Annual Trend for Different Land Cover Trajectories (1993-2024)", # A clear main title
+    subtitle = "Comparing NDVI and NIRv Trends",
     x = "Year",
-    y = "Annual Growing Season Mean NDVI",
-    color = "Class Name"
+    y = "Annual Growing Season Mean Index Value",
+    color = "Land Cover Class" 
   ) +
-  theme_minimal() +
+  
+  theme_bw() + 
   theme(
     legend.position = "bottom",
-    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1) # Rotate x-axis labels
+    legend.title = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), 
+    strip.text = element_text(face = "bold", size = 12) 
   )
-
-# --- Plot 2: NIRv Time Series ---
-ggplot(data = annual_data_long %>% filter(IndexType == "NIRv", !ClassName %in% c("Water", "Built-up")), 
-       aes(x = Year, y = IndexValue, color = ClassName, group = ClassName)) +
-  geom_line(alpha = 0.5) +
-  geom_point(size = 1) +
-  geom_smooth(method = "lm", se = FALSE, linetype = "dashed", size = 0.5) +
-  scale_x_continuous(breaks = seq(min_year, max_year, by = 2)) + 
-  labs(
-    # title = "Annual NIRv Trend for Different Analysis Zones (1993-2024)",
-    x = "Year",
-    y = "Annual Growing Season Mean NIRv", # Changed label
-    color = "Class Name"
-  ) +
-  theme_minimal() +
-  theme(
-    legend.position = "bottom",
-    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1) # Rotate x-axis labels
-  )
-
 
 #### 3.2 Sen's Slope Comparison Bar Chart ####
 # Grouping the classes for better visualization
