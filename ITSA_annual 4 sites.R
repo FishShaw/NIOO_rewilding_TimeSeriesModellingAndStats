@@ -2,7 +2,7 @@ library(tidyverse)
 library(nlme) 
 library(ggplot2)
 
-sites_file_path <- "E:/WUR_Intern/RewildingProject_RawData/NDVI/ZonalStats_4Sites_Annual.csv"
+sites_file_path <- "E:/WUR_Intern/RewildingProject_RawData/NDVI/ZonalStatsNew_4Sites_Annual.csv"
 intervention_years <- tibble(
   SiteName = c("MW", "BB", "OW", "EW"),
   StartYear = c(1993, 2002, 2006, 2008)
@@ -13,17 +13,16 @@ sites_annual_data <- read_csv(sites_file_path)
 # 1. Data Preparation for ITSA ----
 #=======================================
 sites_long_data <- sites_annual_data %>%
-  pivot_longer(
-    cols = -1,
-    names_to = c("IndexType", "Year"),
-    names_sep = "_",
-    values_to = "IndexValue"
+  separate(SourceFile, into = c("IndexType", "Year"), sep = "_", remove = FALSE) %>%
+  rename(
+    SiteName = Site_ID,
+    IndexValue = MEAN
   ) %>%
-  mutate(Year = as.numeric(Year)) %>%
-  rename(SiteName = names(.)[1])
+  mutate(Year = as.numeric(Year))
 
 sites_itsa_data <- sites_long_data %>%
   left_join(intervention_years, by = "SiteName") %>%
+  filter(!is.na(StartYear)) %>%
   mutate(
     Time = Year - 1993 + 1,
     Intervention = if_else(Year >= StartYear, 1, 0),
@@ -185,3 +184,4 @@ ggplot(data = sites_itsa_data_predicted, aes(x = Year, y = IndexValue)) +
     strip.text = element_text(face = "bold", size = 12),
     axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)
   )
+
