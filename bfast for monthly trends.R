@@ -214,7 +214,6 @@ if (file.exists(path_12classes_annual_data) && file.exists(path_12classes_monthl
       
       # 月度BFAST
       full_time_grid <- tibble(Year = rep(1993:2024, each = 12), Month = rep(1:12, times = 32))
-      # *** 代码修正处 *** # 只通过 Year 和 Month 进行连接
       ts_data_full <- full_time_grid %>% left_join(monthly_data_subset, by = c("Year", "Month"))
       ts_monthly <- ts(ts_data_full$IndexValue, start = c(1993, 1), frequency = 12)
       
@@ -337,3 +336,104 @@ if (exists("all_models_classes")) {
 
 print("\n分析全部完成！")
 
+
+# ===================================================================
+# 如何从BFAST模型中提取精确的断点时间
+# How to Extract Precise Breakpoint Timing from a BFAST Model
+# ===================================================================
+
+# 假设您的主分析脚本已经运行完毕，
+# 所有的模型都已经存储在 all_models_sites 和 all_models_classes 两个列表中。
+# We assume your main analysis script has been run, and all models are stored.
+
+# --- 1. 定义一个用于转换时间的辅助函数 (无变化) ----
+decimal_year_to_date <- function(dec_year) {
+  if (length(dec_year) == 0 || is.null(dec_year) || is.na(dec_year)) {
+    return("无断点 (No Breakpoint)")
+  }
+  year <- floor(dec_year)
+  day_of_year <- ceiling((dec_year - year) * 365.25)
+  dt <- as.Date(paste(year, 1, 1, sep = "-")) + (day_of_year - 1)
+  return(format(dt, "%Y-%m"))
+}
+
+
+# --- 2. 检查一个具体的月度BFAST模型 (已修正) ----
+# 让我们以 "EW_BFAST_Monthly" 为例
+model_to_inspect <- all_models_sites[["EW_BFAST_Monthly"]]
+
+# 检查模型是否存在
+if (!is.null(model_to_inspect)) {
+  
+  # === 核心修正：直接从模型主干提取所有断点 ===
+  # The model$Vt.bp 和 model$St.bp 分别包含所有趋势和季节性断点的索引
+  trend_bp_indices <- model_to_inspect$Vt.bp 
+  season_bp_indices <- model_to_inspect$St.bp
+  
+  # 从模型的时间向量中，通过索引找到实际的小数年份
+  time_vector <- time(model_to_inspect$Yt)
+  
+  # 处理可能存在的多个断点
+  trend_decimal_years <- if (any(!is.na(trend_bp_indices))) time_vector[trend_bp_indices] else NA
+  season_decimal_years <- if (any(!is.na(season_bp_indices))) time_vector[season_bp_indices] else NA
+  
+  # 打印正确的小数年份
+  print(paste("EW站点的趋势断点 (小数年份):", paste(round(trend_decimal_years, 2), collapse=", ")))
+  print(paste("EW站点的季节性断点 (小数年份):", paste(round(season_decimal_years, 2), collapse=", ")))
+  
+  # 使用我们的辅助函数进行转换
+  trend_bp_dates <- sapply(trend_decimal_years, decimal_year_to_date)
+  season_bp_dates <- sapply(season_decimal_years, decimal_year_to_date)
+  
+  print(paste("===> EW站点的趋势断点精确时间:", paste(trend_bp_dates, collapse=", ")))
+  print(paste("===> EW站点的季节性断点精确时间:", paste(season_bp_dates, collapse=", ")))
+  
+}
+
+
+# --- 3. 循环所有模型，创建一个断点汇总表 (已修正) ----
+breakpoint_summary <- data.frame(
+  ModelName = character(),
+  TrendBreakpoint = character(),
+  SeasonBreakpoint = character()
+)
+
+# 首先合并两个模型列表
+all_models_combined <- c(all_models_sites, all_models_classes)
+
+for (model_name in names(all_models_combined)) {
+  # 只处理月度BFAST模型
+  if (grepl("BFAST_Monthly", model_name)) {
+    model <- all_models_combined[[model_name]]
+    
+    # 检查模型是否有效
+    if (!is.null(model) && "bfast" %in% class(model)) {
+      
+      # === 核心修正：使用正确的逻辑提取所有断点时间 ===
+      time_vector <- time(model$Yt)
+      
+      # 提取趋势断点
+      trend_bp_indices <- model$Vt.bp
+      trend_decimal_years <- if (any(!is.na(trend_bp_indices))) time_vector[trend_bp_indices] else NA
+      trend_dates_str <- paste(sapply(trend_decimal_years, decimal_year_to_date), collapse=", ")
+      
+      # 提取季节性断点
+      season_bp_indices <- model$St.bp
+      season_decimal_years <- if (any(!is.na(season_bp_indices))) time_vector[season_bp_indices] else NA
+      season_dates_str <- paste(sapply(season_decimal_years, decimal_year_to_date), collapse=", ")
+      
+      # 只有当至少一个断点被找到时才添加到汇总表
+      if (trend_dates_str != "无断点 (No Breakpoint)" || season_dates_str != "无断点 (No Breakpoint)") {
+        breakpoint_summary <- rbind(breakpoint_summary, data.frame(
+          ModelName = model_name,
+          TrendBreakpoint = trend_dates_str,
+          SeasonBreakpoint = season_dates_str
+        ))
+      }
+    }
+  }
+}
+
+# 打印最终的断点汇总表
+print("\n--- 所有检测到的断点精确时间汇总 ---")
+print(breakpoint_summary)
