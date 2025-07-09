@@ -4,6 +4,7 @@ library(nlme)
 library(tidytext)
 library(ggplot2)
 
+# Annual data extraction and combination ----
 # 1. Prepare the data ----
 path_12class_data <- read_csv("E:/WUR_Intern/RewildingProject_RawData/NDVI/ZonalStatsNew_14Class_Annual.csv")
 path_4sites_data <- read_csv("E:/WUR_Intern/RewildingProject_RawData/NDVI/ZonalStatsNew_4Sites_Annual.csv")
@@ -64,6 +65,73 @@ annual_data_combined <- bind_rows(annual_data_12class, annual_data_4sites) %>%
       TRUE ~ "Specific Site" 
     )
   )
+
+
+# # Monthly data extraction and combination ----
+# # 1. Prepare the data ----
+# path_12class_data <- read_csv("E:/WUR_Intern/RewildingProject_RawData/NDVI/ZonalStatsNew_14Class_Monthly.csv")
+# path_4sites_data <- read_csv("E:/WUR_Intern/RewildingProject_RawData/NDVI/ZonalStatsNew_4Sites_Monthly.csv")
+# 
+# # For 12 classes data
+# annual_data_12class <- path_12class_data %>%
+#   separate(SourceFile, into = c("IndexType", "Year", "Month"), sep = "_") %>%
+#   rename(IndexValue = MEAN) %>%
+#   mutate(Year = as.numeric(Year)) %>%
+#   mutate(Month = as.numeric(Month)) %>%
+#   mutate(
+#     ClassName = case_when(
+#       # Early Rewilding
+#       Value == 1  ~ "Early Rewilded Forest",
+#       Value == 2  ~ "Early Rewilded Natural Grassland",
+#       Value == 3  ~ "Early Rewilded Open/Wetland",
+#       Value == 4  ~ "Early Rewilded Unstable",
+#       # Late Rewilding
+#       Value == 11 ~ "Late Rewilded Forest",
+#       Value == 12 ~ "Late Rewilded Natural Grassland",
+#       Value == 13 ~ "Late Rewilded Open/Wetland",
+#       # Stable Natural
+#       Value == 31 ~ "Stable Original Forest",
+#       Value == 32 ~ "Stable Natural Grassland",
+#       Value == 33 ~ "Stable Natural Open/Wetland",
+#       # Stable Agriculture
+#       Value == 41 ~ "Stable Agriculture Grassland",
+#       Value == 42 ~ "Stable Agriculture Crops",
+#       # Other
+#       Value == 20 ~ "Water",
+#       Value == 21 ~ "Built-up",
+#       TRUE ~ "Unknown"
+#     )
+#   ) %>%
+#   mutate(AnalysisType = "Regional Class") %>%
+#   select(ClassName, AnalysisType, IndexType, Year, Month, IndexValue)
+# 
+# # For 4 sites data
+# annual_data_4sites <- path_4sites_data %>%
+#   separate(SourceFile, into = c("IndexType", "Year", "Month"), sep = "_", remove = FALSE) %>%
+#   rename(
+#     ClassName = Site_ID,
+#     IndexValue = MEAN
+#   ) %>%
+#   mutate(Year = as.numeric(Year)) %>%
+#   mutate(Month = as.numeric(Month)) %>%
+#   mutate(AnalysisType = "Specific Site") %>%
+#   select(AnalysisType, ClassName, IndexType, Year, Month, IndexValue)
+# 
+# print(head(annual_data_4sites))
+# 
+# # Combine both datasets
+# annual_data_combined <- bind_rows(annual_data_12class, annual_data_4sites) %>%
+# filter(!ClassName %in% c("Water", "Built-up", "Unknown"))%>%
+#   mutate(
+#      CategoryGroup = case_when(
+#        str_detect(ClassName, "Rewilded") ~ "Rewilded",
+#        str_detect(ClassName, "Stable Agriculture") ~ "Stable Agriculture",
+#        str_detect(ClassName, "Stable Natural|Stable Original") ~ "Stable Natural",
+#        TRUE ~ "Specific Site"
+#      )
+#    )
+# 
+# write.csv(annual_data_combined, "E:/WUR_Intern/RewildingProject_RawData/NDVI/monthly_data_combined.csv", row.names = FALSE)
 
 
   
