@@ -18,7 +18,7 @@ events_df <- read_csv(events_path)
 # --- 步骤 2: 计算NDVI异常值 (Z-score) ---
 # 解释: 此步骤与之前相同。
 cat("--- 正在计算每个像素的NDVI Z-score ---\n")
-ndvi_with_zscore <- pixel_df %>%
+ndvi_data_final <- pixel_df %>%
   mutate(month_num = month(ymd(paste(Year, Month, 1)))) %>%
   group_by(UnitName, month_num) %>%
   mutate(
@@ -28,7 +28,8 @@ ndvi_with_zscore <- pixel_df %>%
   ungroup() %>%
   mutate(
     NDVI_zscore = (NDVI - NDVI_mean_hist) / NDVI_sd_hist,
-    NDVI_zscore = if_else(is.finite(NDVI_zscore), NDVI_zscore, 0)
+    NDVI_zscore = if_else(is.finite(NDVI_zscore), NDVI_zscore, 0),
+    NDVI_anomaly = NDVI - NDVI_mean_hist
   ) %>%
   mutate(date = ymd(paste(Year, Month, 1)))
 
@@ -47,69 +48,184 @@ events_prepared <- events_df %>%
     EndDate = ymd(EndDate)
     )
 
-# # 直接对所有像素数据进行处理
-# resilience_metrics_long <- ndvi_with_zscore %>%
-#   # 按像素ID分组
-#   group_by(Pixel_ID, UnitName, AnalysisType) %>%
-#   # nest() 会将每个像素的所有时间序列数据“折叠”进一个名为 'data' 的列
-#   nest() %>%
-#   # 现在我们对 'data' 列进行操作。'data' 是一个列表，每个元素都是一个像素的数据框
-#   mutate(metrics = map(data, function(pixel_data) {
-#     # 这里的 pixel_data 就是一个独立的、干净的数据框，不会有歧义
-#     
-#     # 遍历所有事件
-#     map_dfr(1:nrow(events_prepared), function(i) {
-#       event <- events_prepared[i, ]
-#       
-#       # 定义要计算的时间窗口
-#       time_windows <- c(3, 6, 9, 12, 15, 18)
-#       
-#       # 遍历所有时间窗口
-#       map_dfr(time_windows, function(w) {
-#         
-#         # 定义对称的事前和事后窗口
-#         pre_start <- event$StartDate %m-% months(w)
-#         pre_end <- event$StartDate %m-% days(1)
-#         post_start <- event$EndDate %m+% days(1)
-#         post_end <- event$EndDate %m+% months(w)
-#         
-#         # 使用基础R的子集提取语法
-#         before_data <- pixel_data[pixel_data$date >= pre_start & pixel_data$date <= pre_end, ]
-#         during_data <- pixel_data[pixel_data$date >= floor_date(event$StartDate, "month") & pixel_data$date <= floor_date(event$EndDate, "month"), ]
-#         after_data <- pixel_data[pixel_data$date >= post_start & pixel_data$date <= post_end, ]
-#         
-#         # 数据质量控制: 确保每个窗口都有足够的数据
-#         if(nrow(before_data) < w/2 || nrow(during_data) == 0 || nrow(after_data) < w/2) {
-#           return(tibble(EventID = event$EventID, TimeWindow = w, Resistance = NA_real_, Resilience = NA_real_, Recovery = NA_real_))
-#         }
-#         
-#         # 计算指标
-#         ndvi_before_mean <- mean(before_data$NDVI_zscore, na.rm = TRUE)
-#         ndvi_during_min <- min(during_data$NDVI_zscore, na.rm = TRUE)
-#         ndvi_after_mean <- mean(after_data$NDVI_zscore, na.rm = TRUE)
-#         
-#         resistance <- ndvi_during_min / ndvi_before_mean
-#         resilience <- ndvi_after_mean / ndvi_before_mean
-#         
-#         if(abs(ndvi_before_mean - ndvi_during_min) > 0.01) {
-#           recovery <- (ndvi_after_mean - ndvi_during_min) / (ndvi_before_mean - ndvi_during_min)
-#         } else {
-#           recovery <- NA_real_
-#         }
-#         
-#         tibble(EventID = event$EventID, TimeWindow = w, Resistance = resistance, Resilience = resilience, Recovery = recovery)
-#       })
-#     })
-#   })) %>%
-#   # 移除原始的嵌套数据列 'data'
-#   select(-data) %>%
-#   # unnest() 会将我们新计算的 'metrics' 列（它也是一个列表）展开
-#   unnest(cols = c(metrics)) %>%
-#   ungroup() %>%
-#   # 过滤掉计算失败的行
-#   filter(!is.na(Resilience) & !is.na(Resistance) & !is.na(Recovery))
-# 
-# write_csv(resilience_metrics_long, "E:/WUR_Intern/RewildingProject_RawData/Resilience_metrics/resilience_metrics.csv")
+# 直接对所有像素数据进行处理
+resilience_metrics_long <- ndvi_with_zscore %>%
+  # 按像素ID分组
+  group_by(Pixel_ID, UnitName, AnalysisType) %>%
+  # nest() 会将每个像素的所有时间序列数据“折叠”进一个名为 'data' 的列
+  nest() %>%
+  # 现在我们对 'data' 列进行操作。'data' 是一个列表，每个元素都是一个像素的数据框
+  mutate(metrics = map(data, function(pixel_data) {
+    # 这里的 pixel_data 就是一个独立的、干净的数据框，不会有歧义
+
+    # 遍历所有事件
+    map_dfr(1:nrow(events_prepared), function(i) {
+      event <- events_prepared[i, ]
+
+      # 定义要计算的时间窗口
+      time_windows <- c(3, 6, 9, 12, 15, 18)
+
+      # 遍历所有时间窗口
+      map_dfr(time_windows, function(w) {
+
+        # 定义对称的事前和事后窗口
+        pre_start <- event$StartDate %m-% months(w)
+        pre_end <- event$StartDate %m-% days(1)
+        post_start <- event$EndDate %m+% days(1)
+        post_end <- event$EndDate %m+% months(w)
+
+        # 使用基础R的子集提取语法
+        before_data <- pixel_data[pixel_data$date >= pre_start & pixel_data$date <= pre_end, ]
+        during_data <- pixel_data[pixel_data$date >= floor_date(event$StartDate, "month") & pixel_data$date <= floor_date(event$EndDate, "month"), ]
+        after_data <- pixel_data[pixel_data$date >= post_start & pixel_data$date <= post_end, ]
+
+        # 数据质量控制: 确保每个窗口都有足够的数据
+        if(nrow(before_data) < w/2 || nrow(during_data) == 0 || nrow(after_data) < w/2) {
+          return(tibble(EventID = event$EventID, TimeWindow = w, Resistance = NA_real_, Resilience = NA_real_, Recovery = NA_real_))
+        }
+
+        # 计算指标
+        ndvi_before_mean <- mean(before_data$NDVI_zscore, na.rm = TRUE)
+        ndvi_during_min <- min(during_data$NDVI_zscore, na.rm = TRUE)
+        ndvi_after_mean <- mean(after_data$NDVI_zscore, na.rm = TRUE)
+
+        resistance <- ndvi_during_min / ndvi_before_mean
+        resilience <- ndvi_after_mean / ndvi_before_mean
+
+        if(abs(ndvi_before_mean - ndvi_during_min) > 0.01) {
+          recovery <- (ndvi_after_mean - ndvi_during_min) / (ndvi_before_mean - ndvi_during_min)
+        } else {
+          recovery <- NA_real_
+        }
+
+        tibble(EventID = event$EventID, TimeWindow = w, Resistance = resistance, Resilience = resilience, Recovery = recovery)
+      })
+    })
+  })) %>%
+  # 移除原始的嵌套数据列 'data'
+  select(-data) %>%
+  # unnest() 会将我们新计算的 'metrics' 列（它也是一个列表）展开
+  unnest(cols = c(metrics)) %>%
+  ungroup() %>%
+  # 过滤掉计算失败的行
+  filter(!is.na(Resilience) & !is.na(Resistance) & !is.na(Recovery))
+
+write_csv(resilience_metrics_long, "E:/WUR_Intern/RewildingProject_RawData/Resilience_metrics/resilience_metrics.csv")
+
+# 这是提取数据的new logic
+resilience_metrics_long_new <- ndvi_data_final %>%
+  group_by(Pixel_ID, UnitName, AnalysisType) %>%
+  nest() %>%
+  mutate(metrics = map(data, function(pixel_data) {
+    map_dfr(1:nrow(events_prepared), function(i) {
+      event <- events_prepared[i, ]
+      time_windows <- c(3, 6, 9, 12, 15, 18)
+      map_dfr(time_windows, function(w) {
+
+        pre_start <- event$StartDate %m-% months(w)
+        pre_end <- event$StartDate %m-% days(1)
+        post_start <- event$EndDate %m+% days(1)
+        post_end <- event$EndDate %m+% months(w)
+
+        before_data <- pixel_data[pixel_data$date >= pre_start & pixel_data$date <= pre_end, ]
+        during_data <- pixel_data[pixel_data$date >= floor_date(event$StartDate, "month") & 
+                                    pixel_data$date <= floor_date(event$EndDate, "month"), ]
+        after_data <- pixel_data[pixel_data$date >= post_start & pixel_data$date <= post_end, ]
+
+        if(nrow(before_data) < w/2 || nrow(during_data) == 0 || nrow(after_data) < w/2) {
+          return(tibble(
+            EventID = event$EventID, 
+            TimeWindow = w,
+            Resistance = NA_real_,
+            Resilience = NA_real_,
+            Recovery = NA_real_,
+            Resistance_new = NA_real_,
+            Recovery_new = NA_real_,
+            Resilience_new = NA_real_
+          ))
+        }
+
+        # =========================================================================
+        # 第一部分: 计算您原有的三个指标 (基于Z-score) - 保持不变
+        ndvi_before_mean <- mean(before_data$NDVI_zscore, na.rm = TRUE)
+        ndvi_during_min  <- min(during_data$NDVI_zscore, na.rm = TRUE)
+        ndvi_after_mean  <- mean(after_data$NDVI_zscore, na.rm = TRUE)
+
+        resistance <- ndvi_during_min / ndvi_before_mean
+        resilience <- ndvi_after_mean / ndvi_before_mean
+        recovery <- NA_real_
+        if(abs(ndvi_before_mean - ndvi_during_min) > 0.01) {
+          recovery <- (ndvi_after_mean - ndvi_during_min) / (ndvi_before_mean - ndvi_during_min)
+        }
+
+        # =========================================================================
+        # 第二部分: 计算新的指标 (基于anomaly)
+        # 1. 定义基准：正常状态 = anomaly为0
+        baseline_normal <- 0
+
+        # 2. 计算事件期间的影响（考虑事件类型）
+        if(event$EventType == "Drought") {
+          # 干旱：取最小值（最负的anomaly）
+          anomaly_impact <- min(during_data$NDVI_anomaly, na.rm = TRUE)
+        } else {
+          # 洪水：可能导致NDVI上升或下降，取绝对偏离最大的值
+          anomaly_max <- max(during_data$NDVI_anomaly, na.rm = TRUE)
+          anomaly_min <- min(during_data$NDVI_anomaly, na.rm = TRUE)
+          anomaly_impact <- ifelse(abs(anomaly_max) > abs(anomaly_min), anomaly_max, anomaly_min)
+        }
+
+        # 3. 计算恢复期的平均状态
+        anomaly_recovered <- mean(after_data$NDVI_anomaly, na.rm = TRUE)
+
+        # 4. 计算Resistance_new（类似Isbell的思想）
+        # Resistance = 正常状态维持能力 / 扰动强度
+        resistance_new <- anomaly_impact - baseline_normal
+
+        # 5. 计算Recovery_new（已经恢复的比例）
+        recovery_new <- NA_real_
+        if(abs(anomaly_impact - baseline_normal) > 1e-6) {
+            recovery_new <- (anomaly_recovered - anomaly_impact) / (baseline_normal - anomaly_impact)
+          }
+
+        # 6. 计算Resilience_new（可选，基于Isbell的定义）
+        # Resilience = 初始偏离 / 剩余偏离
+        resilience_new <- NA_real_
+        if(abs(anomaly_recovered - baseline_normal) > 1e-6) {
+          resilience_new <- abs(anomaly_impact - baseline_normal) / abs(anomaly_recovered - baseline_normal)
+          # 值>1表示恢复中，值<1表示进一步偏离
+        }
+
+        # =========================================================================
+        # 返回所有指标
+        tibble(
+          EventID = event$EventID,
+          TimeWindow = w,
+          # 原有指标
+          Resistance = resistance,
+          Resilience = resilience,
+          Recovery = recovery,
+          # 新增指标
+          Resistance_new = resistance_new,
+          Recovery_new = recovery_new,
+          Resilience_new = resilience_new
+        )
+      })
+    })
+  })) %>%
+  select(-data) %>%
+  unnest(cols = c(metrics)) %>%
+  ungroup() %>%
+  filter(!is.na(Resilience) & !is.na(Resistance) & !is.na(Recovery) & !is.na(Resilience_new) & !is.na(Resistance_new) & !is.na(Recovery_new))
+
+write_csv(resilience_metrics_long_new, "E:/WUR_Intern/RewildingProject_RawData/Resilience_metrics/resilience_metrics_new_1.csv")
+
+
+
+
+
+
+
+
 
 
 # --- 步骤 4: 分离数据并准备建模 ---

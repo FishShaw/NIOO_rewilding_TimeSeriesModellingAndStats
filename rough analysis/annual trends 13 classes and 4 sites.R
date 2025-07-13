@@ -175,10 +175,21 @@ metrics_part3 <- annual_data_combined %>%
   ) %>%
   select(ClassName, IndexType, CV_Stability)
 
+# mean statistics
+mean_statistics <- annual_data_combined %>%
+  filter(!ClassName %in% c("Water", "Built-up", "Unknown")) %>%
+  group_by(ClassName, IndexType) %>%
+  summarise(
+    Mean_SE = sd(IndexValue, na.rm = TRUE) / sqrt(n()),
+    .groups = 'drop'
+  )
+
+
 #### Combine all metrics into a final table ####
 final_metrics_table <- metrics_part1 %>%
   left_join(metrics_part2, by = c("ClassName", "IndexType")) %>%
-  left_join(metrics_part3, by = c("ClassName", "IndexType"))
+  left_join(metrics_part3, by = c("ClassName", "IndexType")) %>%
+  left_join(mean_statistics, by = c("ClassName", "IndexType"))
 
 print(final_metrics_table)
 
@@ -253,13 +264,19 @@ ggplot(data = annual_data_combined %>% filter(ClassName %in% c("MW", "BB", "OW",
 
 #### 3.2 The Average State ####
 ggplot(data = final_metrics_table, aes(x = reorder(ClassName, Mean_Value), y = Mean_Value, fill = CategoryGroup)) +
-  geom_col() +
+  geom_col() + 
+  geom_errorbar(
+    aes(ymin = Mean_Value - Mean_SE, ymax = Mean_Value + Mean_SE),
+    width = 0.4, 
+    color = "grey30", 
+    size = 0.5 
+  ) +
   coord_flip() +
   facet_wrap(~ IndexType, scales = "free_x") +
   labs(
     title = " Average NDVI (1993-2024)",
     x = "Class Name / Site",
-    y = "Mean Annual NDVI",
+    y = "Mean Annual NDVI ± SE",
     fill = "Category Group"
   ) +
   theme_minimal()
