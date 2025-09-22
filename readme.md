@@ -6,22 +6,6 @@
 
 ---
 
-## 📈 Key Scientific Discoveries
-
-### 🔍 **Resilience Patterns Discovered**
-- **Late-started rewilded areas** show significantly higher recovery rates to flood events (p < 0.001)
-- **Agricultural lands** exhibit 40% lower resistance to drought compared to natural areas
-- **Optimal recovery window**: 12-month period shows strongest predictive power across all metrics
-- **Management age effect**: Rewilding sites with 15+ years show enhanced ecological stability
-
-### 📊 **Statistical Model Performance**
-- **High explanatory power**: Best models achieve R² > 0.75 for resilience predictions
-- **Robust significance patterns**: 23 out of 108 models show significant effects (p < 0.05)
-- **Cross-validation stability**: Consistent results across different time windows and event types
-- **Effect size quantification**: Large practical differences between management strategies
-
----
-
 ## 🛠️ Technical Implementation
 
 ### **Data Processing Workflow**
@@ -92,6 +76,22 @@ Resilience
 
 ---
 
+## 📈 Key Scientific Discoveries
+
+### 🔍 **Resilience Patterns Discovered**
+- **Late-started rewilded areas** show significantly higher recovery rates to flood events (p < 0.001)
+- **Agricultural lands** exhibit 40% lower resistance to drought compared to natural areas
+- **Optimal recovery window**: 12-month period shows strongest predictive power across all metrics
+- **Management age effect**: Rewilding sites with 15+ years show enhanced ecological stability
+
+### 📊 **Statistical Model Performance**
+- **High explanatory power**: Best models achieve R² > 0.75 for resilience predictions
+- **Robust significance patterns**: 23 out of 108 models show significant effects (p < 0.05)
+- **Cross-validation stability**: Consistent results across different time windows and event types
+- **Effect size quantification**: Large practical differences between management strategies
+
+---
+
 ## 📊 Results & Impact
 
 ### **Scientific Contributions**
@@ -111,21 +111,6 @@ Resilience
 - **Scalable processing** architecture for large environmental datasets
 - **Integrated quality control** with comprehensive diagnostic reporting
 - **Interactive visualization** tools for stakeholder communication
-
----
-
-## 🔗 Repository Structure
-
-```
-📁 Project Organization
-├── 🧹 preprocessing/          # Data cleaning and quality control
-├── 📍 pixel extraction/       # Spatial data extraction workflows  
-├── 🌪️ extreme event extraction/ # Climate event identification
-├── 📊 modelling/              # Statistical analysis and LME models
-├── 📈 graphs_plots/           # Visualization and publication figures
-├── 🔍 rough analysis/         # Exploratory analysis and trend detection
-└── 📋 plots/                  # Final result outputs and summaries
-```
 
 ---
 
