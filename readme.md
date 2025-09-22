@@ -6,49 +6,6 @@
 
 ---
 
-## 🎯 Project Overview
-
-### Scientific Challenge
-Despite 30+ years of rewilding implementation in the Gelderse Poort floodplain (Netherlands), **quantitative assessment of ecological impact remains a critical knowledge gap**. While land cover changes are visible, their effects on ecosystem functionality—particularly **vegetation productivity** and **resilience to climate extremes**—lack rigorous quantification.
-
-### Technical Innovation
-This project addresses this gap through **multi-scale time series analysis** of 32-year vegetation dynamics (1993-2024), developing novel **three-dimensional resilience metrics** and implementing **automated statistical modeling pipelines** to evaluate rewilding effectiveness across different land management strategies.
-
-### Key Research Questions
-- How do different rewilding approaches affect long-term vegetation productivity?
-- What is the resilience capacity of rewilded ecosystems to extreme climate events?
-- Can we quantify the "recovery time" and identify optimal management strategies?
-
----
-
-## 🚀 Technical Highlights & Data Analytics Capabilities
-
-### 📊 **Complex Multi-Scale Data Integration**
-- **Massive dataset handling**: 32-year × 12 land cover types × 50,000+ pixels
-- **Pixel-level time series analysis**: Individual pixel tracking across 384 monthly observations
-- **Multi-source data fusion**: Satellite indices + meteorological stations + hydrological records
-- **Intelligent quality control**: Automated outlier detection with adaptive interpolation algorithms
-
-### 🔬 **Advanced Statistical Modeling**
-- **Hierarchical Mixed-Effects Models (LME)**: Nested random effects for Event/Pixel dependencies
-- **Automated model selection**: Interaction vs. main effects with AIC-based comparison
-- **Robust uncertainty quantification**: Bootstrap confidence intervals and model diagnostics
-- **Multi-hypothesis testing**: Automated significance screening across 108 model combinations
-
-### 🌦️ **Ecological Resilience Innovation**
-- **Novel three-dimensional resilience framework**: Resistance + Recovery + Resilience metrics
-- **Adaptive time window analysis**: Dynamic 3-18 month recovery periods
-- **Extreme event algorithm**: Automated drought/flood identification using SPEI/SRI indices
-- **Climate-vegetation interaction modeling**: Event severity × management type interactions
-
-### ⚙️ **Production-Ready Analytics Pipeline**
-- **Modular function architecture**: Reusable components for different research contexts
-- **Automated reporting system**: Model diagnostics + significance testing + visualization generation
-- **Error handling & validation**: Comprehensive data quality checks and graceful failure recovery
-- **Scalable processing workflow**: Memory-efficient chunked processing for large raster datasets
-
----
-
 ## 📈 Key Scientific Discoveries
 
 ### 🔍 **Resilience Patterns Discovered**
