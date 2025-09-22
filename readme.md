@@ -1,6 +1,6 @@
 # 🌿 Quantifying Rewilding Impact: Statistical Analysis & Ecological Resilience Modeling
 
-**Master's Research Internship | Netherlands Institute of Ecology (NIOO-KNAW) | Advanced Data Analytics**
+**Master's Research Internship | Netherlands Institute of Ecology (NIOO-KNAW) | Geo Information Science**
 
 *This repository contains the **second phase** of my master's internship project: comprehensive statistical analysis, ecological resilience modeling, and automated reporting pipelines. The first phase (satellite data preprocessing) can be found [here](https://github.com/FishShaw/NIOO_rewilding_GEEDownloadingAndCloudMask).*
 
